@@ -1,0 +1,33 @@
+name: test rights-preflight action
+on: [push, workflow_dispatch]
+jobs:
+  clean:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: sohaibt/rights-preflight@main
+        with:
+          path: project
+          credits: "true"
+      - shell: bash
+        run: test -s project/CREDITS.md && cat project/CREDITS.md
+  must-fail:
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [{path: project, commercial: "true"}, {path: broken, commercial: "false"}]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: rp
+        continue-on-error: true
+        uses: sohaibt/rights-preflight@main
+        with:
+          path: ${{ matrix.case.path }}
+          commercial: ${{ matrix.case.commercial }}
+      - shell: bash
+        run: test "${{ steps.rp.outcome }}" = failure
